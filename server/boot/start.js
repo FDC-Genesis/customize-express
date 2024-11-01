@@ -53,8 +53,9 @@ app.use(flash());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '..', '..', 'public')));
-app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', '..', 'view'));
+console.log(path.join(__dirname, '..', '..', 'view'));
+app.set('view engine', 'ejs');
 
 function ucFirst(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
