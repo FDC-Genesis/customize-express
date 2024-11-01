@@ -140,8 +140,7 @@ app.use((req, res, next) => {
         if (fs.existsSync(newView)) {
             originalRender.call(this, newView, locals, callback);
         } else {
-            console.error(`View not found: ${newView}`); // Log the error
-            res.status(404).json('404'); // Render a 404 error page
+            res.status(404).json(newView);
         }
     };
 
