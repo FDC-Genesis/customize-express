@@ -1,0 +1,34 @@
+{
+  "name": "first-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./server/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./server/server.js",
+    "devStart": "nodemon --no-deprecation ./server/run-server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vitalets/google-translate-api": "^9.2.0",
+    "axios": "^1.7.7",
+    "bcryptjs": "^2.4.3",
+    "connect-flash": "^0.1.1",
+    "connect-sqlite3": "^0.9.15",
+    "csurf": "^1.10.0",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.1",
+    "express-mysql-session": "^3.0.3",
+    "express-session": "^1.18.1",
+    "mysql2": "^3.11.3",
+    "nodemailer": "^6.9.15",
+    "sweetalert2": "^11.14.4"
+  },
+  "devDependencies": {
+    "better-sqlite3": "^11.5.0",
+    "nodemon": "^3.1.7"
+  }
+}

@@ -1,0 +1,289 @@
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+const Configure = require('./libs/Service/Configure');
+require('dotenv').config();
+const util = require('util');
+const execPromise = util.promisify(exec);
+
+function toSnakeCase(str) {
+    return str.replace(/([a-z])([A-Z])/g, '$1_$2').replace(/\s+/g, '_').toLowerCase();
+}
+
+function pluralize(str) {
+    const snakeCaseStr = toSnakeCase(str);
+    const words = snakeCaseStr.split('_');
+    const lastWord = words[words.length - 1];
+
+    const lastChar = lastWord.slice(-1).toLowerCase();
+    const lastTwoChars = lastWord.slice(-2).toLowerCase();
+
+    let pluralLastWord;
+    if (lastChar === 'y' && !['a', 'e', 'i', 'o', 'u'].includes(lastWord.slice(-2, -1).toLowerCase())) {
+        pluralLastWord = lastWord.slice(0, -1) + 'ies';
+    } else if (['s', 'x', 'z', 'ch', 'sh'].includes(lastTwoChars) || ['s', 'x', 'z'].includes(lastChar)) {
+        pluralLastWord = lastWord + 'es';
+    } else if (lastChar !== 's') {
+        pluralLastWord = lastWord + 's';
+    } else {
+        pluralLastWord = lastWord;
+    }
+
+    words[words.length - 1] = pluralLastWord;
+    return words.join('_');
+}
+
+function lowercasePluralize(str) {
+    const words = str.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split(' ');
+    words[words.length - 1] = pluralize(words[words.length - 1]);
+    return words.join(' ');
+}
+
+function createModel(className) {
+    const modelStubPath = path.join(__dirname, 'stubs', 'model.stub');
+    const modelPath = path.join(__dirname, 'libs', 'Model', `${className}.js`);
+
+    fs.readFile(modelStubPath, 'utf8', (err, data) => {
+        if (err) {
+            console.error(`Error reading model stub: ${err.message}`);
+            return;
+        }
+
+        const lowerCasePluralizedClassName = lowercasePluralize(className);
+        const output = data.replace(/{{ classname }}/g, className).replace(/{{ lowercasePluralizedClassname }}/g, lowerCasePluralizedClassName);
+
+        fs.writeFile(modelPath, output, 'utf8', (err) => {
+            if (err) {
+                console.error(`Error writing model file: ${err.message}`);
+            } else {
+                console.log(`Model ${className} created successfully at libs/Model/${className}.js`);
+            }
+        });
+    });
+}
+
+function makeMigration(tableName, type, entity = false) {
+    const migrationDir = path.join(__dirname, 'database', 'migrations');
+    let stubFile;
+
+    switch (true) {
+        case !!entity:
+            stubFile = 'migration.stub';
+            break;
+        case type === 'token':
+            stubFile = 'token.stub';
+            break;
+        case type === 'secret':
+            stubFile = 'secret.stub';
+            break;
+        case type === 'bearer':
+            stubFile = 'bearer.stub';
+            break;
+        default:
+            stubFile = 'migration2.stub';
+            break;
+    }
+
+    const stubPath = path.join(__dirname, 'stubs', stubFile);
+
+    if (!fs.existsSync(migrationDir)) {
+        fs.mkdirSync(migrationDir, { recursive: true });
+    }
+
+    const migrationFileName = `create_${tableName}.js`;
+    const migrationFilePath = path.join(migrationDir, migrationFileName);
+
+    fs.readFile(stubPath, 'utf8', (err, data) => {
+        if (err) {
+            console.error(`Error reading migration stub: ${err.message}`);
+            return;
+        }
+
+        const migrationContent = data.replace(/{{ tableName }}/g, tableName);
+
+        fs.writeFile(migrationFilePath, migrationContent, 'utf8', (err) => {
+            if (err) {
+                console.error(`Error writing migration file: ${err.message}`);
+            } else {
+                console.log(`Migration file created at ${migrationFilePath}`);
+            }
+        });
+    });
+}
+
+function createController(controllerName, specificArea, sub) {
+    const controllerStubPath = path.join(__dirname, 'stubs', 'controller.stub');
+
+    // Split the controller name by '/' to separate path and actual controller name
+    const parts = controllerName.split('/');
+    const actualControllerName = parts.pop(); // Final part is the actual controller name
+    const nestedPath = parts.join('/'); // Rest form the nested path
+
+    // Build the relative path variable based on remaining depth
+    let relativePath = '';
+    for (let i = 0; i < parts.length; i++) {
+        relativePath += '../';
+    }
+
+    const controllerDir = path.join(__dirname, sub === 'controller' ? 'app' : 'api', specificArea, 'Controller', nestedPath);
+    const controllerPath = path.join(controllerDir, `${actualControllerName}Controller.js`);
+
+    // Ensure all nested directories are created
+    fs.mkdirSync(controllerDir, { recursive: true });
+
+    fs.readFile(controllerStubPath, 'utf8', (err, data) => {
+        if (err) {
+            console.error(`Error reading controller stub: ${err.message}`);
+            return;
+        }
+
+        // Replace placeholders in the stub with actual values
+        const output = data
+            .replace(/{{ ControllerName }}/g, actualControllerName)
+            .replace(/{{ SpecificArea }}/g, specificArea)
+            .replace(/{{ controllerPath }}/g, relativePath);
+
+        fs.writeFile(controllerPath, output, 'utf8', (err) => {
+            if (err) {
+                console.error(`Error writing controller file: ${err.message}`);
+            } else {
+                console.log(`Controller ${actualControllerName} created successfully at ${controllerPath}`);
+            }
+        });
+    });
+}
+
+function createConfig(name) {
+    const stubPath = path.join(__dirname, 'stubs', 'constant.stub');
+    const destinationPath = path.join(__dirname, 'config', `${name}.js`);
+
+    fs.mkdir(path.dirname(destinationPath), { recursive: true }, (err) => {
+        if (err) {
+            console.error(`Error creating directory: ${err.message}`);
+            return;
+        }
+
+        fs.copyFile(stubPath, destinationPath, (err) => {
+            if (err) {
+                console.error(`Error creating config file: ${err.message}`);
+            } else {
+                console.log(`Config file created at config/${name}.js`);
+            }
+        });
+    });
+}
+
+function makeView(folder, specific) {
+    const viewsBasePath = path.join(__dirname, 'view', specific, folder);
+    const viewPath = path.join(viewsBasePath, 'index.ejs');
+
+    fs.mkdirSync(viewsBasePath, { recursive: true });
+
+    const stubFilePath = path.join(__dirname, 'stubs', 'view.stub');
+    fs.readFile(stubFilePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading the stub file:', err);
+            return;
+        }
+
+        fs.writeFile(viewPath, data, (err) => {
+            if (err) {
+                console.error('Error creating the view file:', err);
+            } else {
+                console.log(`View file created at ${viewPath}`);
+            }
+        });
+    });
+}
+
+async function migrate() {
+    const migrationDir = path.join(__dirname, 'database', 'migrations');
+
+    try {
+        const files = await fs.promises.readdir(migrationDir); // Read directory contents
+        const migrationFiles = files.filter(file => file.endsWith('.js')).sort();
+
+        if (migrationFiles.length === 0) {
+            console.log('No migration files found.');
+            return;
+        }
+
+        // Execute each migration file sequentially
+        for (const file of migrationFiles) {
+            const filePath = path.join(migrationDir, file);
+            try {
+                const { stdout, stderr } = await execPromise(`node ${filePath}`);
+                if (stderr) {
+                    console.error(`Error in migration ${file}: ${stderr}`);
+                    return; // Stop execution on error
+                }
+                console.log(`Migration ${file} executed successfully:\n${stdout}`);
+            } catch (error) {
+                console.error(`Error executing migration ${file}: ${error.message}`);
+                return; // Stop execution on error
+            }
+        }
+    } catch (err) {
+        console.error(`Error reading migration directory: ${err.message}`);
+    }
+}
+
+const args = process.argv.slice(2);
+const [command, subCommand, name, specificArea] = args;
+
+if (!command) {
+    console.error("Please provide a command (e.g., make model, make migration, make controller) and a name.");
+    process.exit(1);
+}
+(async () => {
+    if (command === 'make') {
+        switch (subCommand) {
+            case 'model':
+                createModel(name);
+                break;
+            case 'migration':
+                switch (specificArea) {
+                    case 'entity':
+                        makeMigration(name, 'table', true);
+                        break;
+                    default:
+                        makeMigration(name, 'table');
+                }
+                break;
+            case 'controller':
+            case 'apicontroller':
+                createController(name, specificArea, subCommand);
+                break;
+            case 'config':
+                createConfig(name);
+                break;
+            case 'view':
+                makeView(name, specificArea);
+                break;
+            case 'token-tables':
+                const tokenKeys = Object.values(Configure.read('auth.access_tokens'));
+                tokenKeys.forEach((ele) => {
+                    makeMigration(ele.table, 'token');
+                });
+                break;
+            case 'bearer-tables':
+                const bearerKeys = Object.values(Configure.read('auth.bearer_tokens'));
+                bearerKeys.forEach((ele) => {
+                    makeMigration(ele.table, 'bearer');
+                });
+                break;
+            case 'secret':
+                const secretKeys = Object.values(Configure.read('auth.secrets'));
+                secretKeys.forEach((ele) => {
+                    makeMigration(ele.table, 'secret');
+                });
+                break;
+            default:
+                console.error(`Unknown subCommand "${subCommand}" provided.`);
+                process.exit(1);
+        }
+    } else if (command === 'migrate') {
+        await migrate();
+    }
+})();
+

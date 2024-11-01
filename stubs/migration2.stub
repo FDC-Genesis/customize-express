@@ -1,0 +1,24 @@
+const Blueprint = require('../../libs/Service/Blueprint');
+const DatabaseConnection = require('../database');
+
+async function up() {
+    const blueprint = new Blueprint();
+    const tableName = '{{ tableName }}';
+    const db = new DatabaseConnection();
+
+    blueprint.id();
+    blueprint.timestamp();
+
+    const columns = blueprint.getColumns();
+
+    try {
+        await db.runQuery(`CREATE TABLE IF NOT EXISTS ${tableName} (${columns});`);
+        await db.close();
+        console.log(`Table ${tableName} created successfully.`);
+    } catch (err) {
+        console.error(`Error creating table ${tableName}:`, err);
+    } finally {
+    }
+}
+
+up();

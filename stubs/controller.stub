@@ -1,0 +1,23 @@
+const Controller = require('../{{ controllerPath }}Controller.js');
+
+class {{ ControllerName }}Controller extends Controller {
+  constructor() {
+    super();
+    this.set('title', '{{ ControllerName }}');
+    this.initializeRoutes();
+  }
+
+  initializeRoutes() {
+    this.get('/', this.get{{ ControllerName }});
+  }
+
+  get{{ ControllerName }}(req, res) {
+    res.json({ message: 'this is {{ SpecificArea }}' });
+  }
+
+  getRouter() {
+    return this.router;
+  }
+}
+
+module.exports = new {{ ControllerName }}Controller().getRouter();

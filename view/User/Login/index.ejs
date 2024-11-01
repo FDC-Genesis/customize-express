@@ -1,0 +1,37 @@
+<%- include('../../Defaults/header') %>
+<div class="container mt-5 d-flex justify-content-center">
+    <div id="user_form">
+        <h2 class="text-center">User Login</h2>
+        <form action="/user/login" method="post">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" value="<%= old.username ?? '' %>">
+                <% if (error.username){ %>
+                    <div class="text-danger"><%= error.username %></div>
+                <% } %>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" value="<%= old.password ?? '' %>">
+                <% if (error.password){ %>
+                    <div class="text-danger"><%= error.password %></div>
+                <% } %>
+            </div>
+            <div class="d-flex justify-content-evenly align-items-center">
+                <button type="submit" class="btn btn-primary">Login</button>
+                <a href="/user/register">Register Here</a>
+            </div>
+        </form>
+    </div>
+</div>
+<% if (success) { %>
+<script src="/libraries/sweetalert2.all.min.js"></script>
+<script>
+    Swal.fire({
+        icon: 'success',
+        title: '<%= success %>',
+        timer: 1500
+    });
+</script>
+<% } %>
+<%- include('../../Defaults/footer') %>
