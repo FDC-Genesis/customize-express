@@ -137,13 +137,13 @@ app.use((req, res, next) => {
 
     res.render = async function (view, locals, callback) {
         let newView;
-        const viewPath = path.join(__dirname, '..', '..', 'view', req.routeSrc.type, req.routeSrc.controller ?? defaultController, `${view}.ejs`);
+        const viewPath = path.join(__dirname, '..', '..', 'view', ucFirst(req.routeSrc.type), ucFirst(req.routeSrc.controller) ?? ucFirst(defaultController), `${view}.ejs`);
 
         try {
             await fs.promises.access(viewPath);
             newView = `${ucFirst(req.routeSrc.type)}/${ucFirst(req.routeSrc.controller ?? defaultController)}/${view}`;
         } catch {
-            newView = path.join(__dirname, '..', '..', 'view', view);
+            newView = path.join(__dirname, '..', '..', 'view', 'Error');
         }
 
         originalRender.call(res, newView, locals, callback);
