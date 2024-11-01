@@ -140,7 +140,14 @@ app.use((req, res, next) => {
         if (fs.existsSync(newView)) {
             originalRender.call(this, newView, locals, callback);
         } else {
-            res.status(404).json(newView);
+            res.status(404).json({
+                'debug_view': {
+                    'checker': path.join(__dirname, '..', '..', 'view', req.routeSrc.type, req.routeSrc.controller ?? defaultController, `${view}.ejs`),
+                    'left': `${ucFirst(req.routeSrc.type)}/${ucFirst(req.routeSrc.controller ?? defaultController)}/${view}`,
+                    'right': path.join(__dirname, '..', '..', 'view', view),
+                    'newView': newView
+                }
+            });
         }
     };
 
