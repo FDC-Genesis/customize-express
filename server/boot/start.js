@@ -53,8 +53,8 @@ app.use(flash());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '..', '..', 'public')));
-app.set('views', path.join(__dirname, '..', '..', 'view'));
-console.log(path.join(__dirname, '..', '..', 'view'));
+const viewsPath = path.resolve(__dirname, '../../view');
+app.set('views', viewsPath);
 app.set('view engine', 'ejs');
 
 function ucFirst(string) {
