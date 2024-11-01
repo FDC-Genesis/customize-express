@@ -137,7 +137,12 @@ app.use((req, res, next) => {
 
     res.render = function (view, locals, callback) {
         let newView = fs.existsSync(path.join(__dirname, '..', '..', 'view', req.routeSrc.type, req.routeSrc.controller ?? defaultController, `${view}.ejs`)) ? `${ucFirst(req.routeSrc.type)}/${ucFirst(req.routeSrc.controller ?? defaultController)}/${view}` : path.join(__dirname, '..', '..', 'view', view);
-        originalRender.call(this, newView, locals, callback);
+        if (fs.existsSync(newView)) {
+            originalRender.call(this, newView, locals, callback);
+        } else {
+            console.error(`View not found: ${newView}`); // Log the error
+            res.status(404).json('404'); // Render a 404 error page
+        }
     };
 
     next();
