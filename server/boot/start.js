@@ -135,24 +135,23 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
     const originalRender = res.render;
 
-    res.render = function (view, locals, callback) {
-        let newView = fs.existsSync(path.join(__dirname, '..', '..', 'view', req.routeSrc.type, req.routeSrc.controller ?? defaultController, `${view}.ejs`)) ? `${ucFirst(req.routeSrc.type)}/${ucFirst(req.routeSrc.controller ?? defaultController)}/${view}` : path.join(__dirname, '..', '..', 'view', view);
-        if (fs.existsSync(newView)) {
-            originalRender.call(this, newView, locals, callback);
-        } else {
-            res.status(404).json({
-                'debug_view': {
-                    'checker': path.join(__dirname, '..', '..', 'view', req.routeSrc.type, req.routeSrc.controller ?? defaultController, `${view}.ejs`),
-                    'left': `${ucFirst(req.routeSrc.type)}/${ucFirst(req.routeSrc.controller ?? defaultController)}/${view}`,
-                    'right': path.join(__dirname, '..', '..', 'view', view),
-                    'newView': newView
-                }
-            });
+    res.render = async function (view, locals, callback) {
+        let newView;
+        const viewPath = path.join(__dirname, '..', '..', 'view', req.routeSrc.type, req.routeSrc.controller ?? defaultController, `${view}.ejs`);
+
+        try {
+            await fs.promises.access(viewPath);
+            newView = `${ucFirst(req.routeSrc.type)}/${ucFirst(req.routeSrc.controller ?? defaultController)}/${view}`;
+        } catch {
+            newView = path.join(__dirname, '..', '..', 'view', view);
         }
+
+        originalRender.call(res, newView, locals, callback);
     };
 
     next();
 });
+
 
 
 module.exports = app;
